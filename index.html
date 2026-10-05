@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mi diagrama de Gantt</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#f7f8fa;--card:#fff;--ink:#1c2230;--mute:#7a8396;--line:#e6e9ef;--acc:#3b6df0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171f;--card:#1c212c;--ink:#e8ebf2;--mute:#8d96aa;--line:#2b3140;--acc:#6f95ff}}
+:root[data-theme="dark"]{--bg:#14171f;--card:#1c212c;--ink:#e8ebf2;--mute:#8d96aa;--line:#2b3140;--acc:#6f95ff}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 "Inter","Segoe UI",system-ui,sans-serif;padding:20px 14px 40px}
+main{max-width:1000px;margin:0 auto}
+h1{font-size:22px;margin:0 0 4px;font-weight:650}
+.sub{color:var(--mute);margin:0 0 18px}
+.add{display:flex;flex-wrap:wrap;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:16px}
+.add label{display:flex;flex-direction:column;font-size:12px;color:var(--mute);gap:3px}
+.add .n{flex:1 1 180px}
+input,select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+input[type=number]{width:70px}
+.add .n input{width:100%}
+button.go{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600;align-self:flex-end;cursor:pointer}
+.chart{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow-x:auto;display:flex}
+.left{flex:0 0 auto;width:330px;position:sticky;left:0;background:var(--card);z-index:2;border-right:1px solid var(--line)}
+.right{flex:0 0 auto;position:relative}
+.hd{height:34px;display:flex;align-items:center;color:var(--mute);font-size:12px;border-bottom:1px solid var(--line)}
+.row{height:48px;display:flex;align-items:center;gap:6px;padding:0 8px;border-bottom:1px solid var(--line)}
+.row .nm{flex:1;min-width:0;border-color:transparent;background:transparent;padding:5px 6px}
+.row .nm:hover{border-color:var(--line)}
+.row input[type=number]{width:54px;padding:5px 6px}
+.row select{width:62px;padding:5px 2px}
+.row .x{border:0;background:none;color:var(--mute);cursor:pointer;font-size:18px;padding:2px 6px}
+.row .x:hover{color:#e5484d}
+.days{display:flex;height:34px;border-bottom:1px solid var(--line)}
+.days div{text-align:center;font-size:11px;color:var(--mute);line-height:34px;border-left:1px solid var(--line)}
+.body{position:relative}
+.rl{height:48px;border-bottom:1px solid var(--line)}
+.bar{position:absolute;height:26px;border-radius:7px;color:#fff;font-size:12px;font-weight:600;padding:0 8px;line-height:26px;white-space:nowrap;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.grid{position:absolute;inset:0;pointer-events:none}
+svg{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.empty{padding:28px;text-align:center;color:var(--mute)}
+.hint{color:var(--mute);font-size:13px;margin-top:12px}
+.hd span,.row span{flex:0 0 auto}
+.bar{cursor:grab;touch-action:none;user-select:none}
+.bar.fixed{cursor:default}
+.bar .h{position:absolute;right:0;top:0;bottom:0;width:10px;cursor:ew-resize;background:rgba(255,255,255,.28)}
+.bar:active{cursor:grabbing}
+.bar.fixed:active{cursor:default}
+.bar{z-index:1}
+.bar.drag{opacity:.85}
+.bar-text{pointer-events:none}
+.bar-text{display:inline-block}
+.bar{padding-right:14px}
+.bar-text{overflow:hidden}
+.bar-text{max-width:100%}
+.stats{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.stats .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13px}
+.stats .chip b{font-weight:650}
+.stats .sp{flex:1}
+#exp{cursor:pointer}
+.bar{color:var(--ink);box-shadow:none}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;overflow:hidden}
+.bar .fill .bar-text{position:absolute;left:8px;top:0;color:#fff;white-space:nowrap}
+.bar .h{background:rgba(128,128,128,.28)}
+.left{width:410px}
+.chart{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.view{display:none;gap:6px;margin-bottom:10px}
+.view button{flex:1;cursor:pointer}
+.view button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+@media (max-width:700px){
+  body{padding:16px 10px 32px}
+  .view{display:flex}
+  .left{position:static;width:370px}
+  .row{gap:4px;padding:0 6px}
+  .row input[type=number]{width:46px;padding:5px 4px}
+  .row select{width:54px}
+  .row .x{padding:2px 4px}
+  .hd span[style*="54px"]{width:46px!important}
+  .hd span[style*="62px"]{width:54px!important}
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>Mi diagrama de Gantt</h1>
+  <p class="sub">Añade tareas, indica cuántos días duran y de cuál dependen.</p>
+
+  <div class="add">
+    <label class="n">Tarea<input id="fn" placeholder="Ej: Buscar información"></label>
+    <label>Inicio (día)<input id="fs" type="number" min="1" value="1"></label>
+    <label>Duración (días)<input id="fd" type="number" min="1" value="3"></label>
+    <label>Depende de<select id="fp"></select></label>
+    <button class="go" id="add">Añadir</button>
+  </div>
+
+  <div class="stats">
+    <span class="chip" id="st1"></span><span class="chip" id="st2"></span>
+    <span class="sp"></span>
+    <button id="exp">Entregar al profe</button>
+  </div>
+  <div class="view" id="view"><button data-v="t" class="on">Tabla</button><button data-v="d">Diagrama</button></div>
+  <div class="chart" id="chart"></div>
+  <p class="hint">Arrastra una barra para moverla y tira del borde derecho para cambiar su duración. Una tarea que depende de otra empieza justo cuando termina la anterior (esa no se puede mover, pero sí alargar).</p>
+</main>
+
+<script>
+const COLORS=["#3b6df0","#16a37f","#e8890c","#d6409f","#7c5cf0","#0ea5c6"];
+const DW=36, RH=48, HH=34;
+let tasks=[], uid=1;
+
+try{const s=localStorage.getItem("gantt-tareas");if(s){const o=JSON.parse(s);tasks=o.tasks||[];uid=o.uid||1}}catch(e){}
+if(!tasks.length){
+  tasks=[{id:1,name:"Buscar información",start:1,dur:3,dep:null,pct:100},
+         {id:2,name:"Hacer el esquema",start:1,dur:2,dep:1,pct:60},
+         {id:3,name:"Redactar el trabajo",start:1,dur:4,dep:2,pct:0},
+         {id:4,name:"Preparar la exposición",start:1,dur:3,dep:3,pct:0}];
+  uid=5;
+}
+const $=id=>document.getElementById(id);
+function save(){try{localStorage.setItem("gantt-tareas",JSON.stringify({tasks,uid}))}catch(e){}}
+function eff(t){ // inicio real
+  if(t.dep){const d=tasks.find(x=>x.id===t.dep);if(d)return eff(d)+d.dur}
+  return t.start;
+}
+function fillSelect(sel,cur,limit){
+  sel.innerHTML='<option value="">—</option>';
+  tasks.slice(0,limit).forEach((t,i)=>{const o=document.createElement("option");o.value=t.id;o.textContent="T"+(i+1);o.title=t.name;if(t.id===cur)o.selected=true;sel.appendChild(o)});
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function render(){
+  fillSelect($("fp"),null,tasks.length);
+  const c=$("chart");
+  if(!tasks.length){$("st1").innerHTML="Duración total: <b>0 días</b>";$("st2").innerHTML="<b>0</b> tareas";c.innerHTML='<div class="empty" style="width:100%">Aún no hay tareas. Añade la primera arriba.</div>';return}
+  const ends=tasks.map(t=>eff(t)+t.dur-1);
+  const N=Math.max(14,Math.max(...ends)+2), W=N*DW;
+  let left='<div class="hd"><span style="flex:1;padding-left:14px">Tarea</span><span style="width:54px">Inicio</span><span style="width:54px">Días</span><span style="width:54px">% hecho</span><span style="width:62px">Depende</span><span style="width:30px"></span></div>';
+  tasks.forEach((t,i)=>{
+    const dep=!!t.dep;
+    left+=`<div class="row" data-i="${i}">
+      <input class="nm" value="${esc(t.name)}" data-f="name" aria-label="Nombre">
+      <input type="number" min="1" value="${eff(t)}" data-f="start" ${dep?"disabled":""} aria-label="Inicio">
+      <input type="number" min="1" value="${t.dur}" data-f="dur" aria-label="Duración">
+      <input type="number" min="0" max="100" step="5" value="${t.pct||0}" data-f="pct" aria-label="Porcentaje completado">
+      <select data-f="dep" aria-label="Depende de"></select>
+      <button class="x" data-del="${i}" aria-label="Borrar tarea">×</button></div>`;
+  });
+  let days="";for(let d=1;d<=N;d++)days+=`<div style="width:${DW}px">${d}</div>`;
+  let rows="",bars="",paths="";
+  const pos={};
+  tasks.forEach((t,i)=>{
+    const s=eff(t);pos[t.id]={x1:(s-1)*DW,x2:(s-1+t.dur)*DW,y:i*RH+RH/2};
+    rows+='<div class="rl"></div>';
+    bars+=`<div class="bar${t.dep?" fixed":""}" data-i="${i}" style="left:${(s-1)*DW+2}px;width:${t.dur*DW-4}px;top:${i*RH+11}px;background:${COLORS[i%COLORS.length]}38" title="${esc(t.name)}: día ${s} a ${s+t.dur-1} · ${t.pct||0}% completado"><span class="bar-text">${esc(t.name)}</span><div class="fill" style="width:${t.pct||0}%;background:${COLORS[i%COLORS.length]}"><span class="bar-text" style="max-width:${t.dur*DW-26}px">${esc(t.name)}</span></div><span class="h"></span></div>`;
+  });
+  tasks.forEach(t=>{
+    if(!t.dep||!pos[t.dep])return;
+    const a=pos[t.dep],b=pos[t.id],mx=a.x2+8;
+    paths+=`<path d="M${a.x2-2},${a.y} H${mx} V${b.y} H${b.x1+1}" fill="none" stroke="var(--mute)" stroke-width="1.5"/><path d="M${b.x1+1},${b.y} l-5,-4 v8 z" fill="var(--mute)"/>`;
+  });
+  c.innerHTML=`<div class="left">${left}</div>
+    <div class="right" style="width:${W}px"><div class="days">${days}</div>
+    <div class="body" style="height:${tasks.length*RH}px">${rows}
+    <div class="grid" style="background:repeating-linear-gradient(90deg,transparent 0 ${DW-1}px,var(--line) ${DW-1}px ${DW}px)"></div>
+    ${bars}<svg width="${W}" height="${tasks.length*RH}">${paths}</svg></div></div>`;
+  c.querySelectorAll(".row").forEach(r=>{
+    const i=+r.dataset.i;fillSelect(r.querySelector("select"),tasks[i].dep,i);
+  });
+  const tot=Math.max(...ends);
+  $("st1").innerHTML=`Duración total: <b>${tot} ${tot==1?"día":"días"}</b>`;
+  $("st2").innerHTML=`<b>${tasks.length}</b> ${tasks.length==1?"tarea":"tareas"}`;
+  save();
+}
+
+$("chart").addEventListener("change",e=>{
+  const r=e.target.closest(".row");if(!r)return;
+  const t=tasks[+r.dataset.i],f=e.target.dataset.f;
+  if(f==="name")t.name=e.target.value.trim()||"Tarea";
+  else if(f==="dep")t.dep=e.target.value?+e.target.value:null;
+  else if(f==="pct")t.pct=Math.min(100,Math.max(0,parseInt(e.target.value)||0));
+  else {const v=Math.max(1,parseInt(e.target.value)||1);t[f]=v}
+  if(f==="dep"&&!t.dep)t.start=eff(t)||1;
+  render();
+});
+$("chart").addEventListener("click",e=>{
+  const b=e.target.closest("[data-del]");if(!b)return;
+  const t=tasks[+b.dataset.del];
+  tasks.forEach(x=>{if(x.dep===t.id){x.start=eff(x);x.dep=t.dep}});
+  tasks.splice(+b.dataset.del,1);render();
+});
+function addTask(){
+  const name=$("fn").value.trim();
+  if(!name){$("fn").focus();return}
+  const dep=$("fp").value?+$("fp").value:null;
+  tasks.push({id:uid++,name,start:Math.max(1,parseInt($("fs").value)||1),dur:Math.max(1,parseInt($("fd").value)||1),dep,pct:0});
+  $("fn").value="";render();$("fn").focus();
+}
+$("add").addEventListener("click",addTask);
+$("fn").addEventListener("keydown",e=>{if(e.key==="Enter")addTask()});
+
+// ---- Arrastrar barras ----
+let drag=null;
+const ch=$("chart");
+ch.addEventListener("pointerdown",e=>{
+  const bar=e.target.closest(".bar");if(!bar)return;
+  const t=tasks[+bar.dataset.i],resize=!!e.target.closest(".h");
+  if(!resize&&t.dep)return;
+  drag={bar,t,resize,x0:e.clientX,s0:eff(t),d0:t.dur,val:null};
+  bar.classList.add("drag");bar.setPointerCapture(e.pointerId);e.preventDefault();
+});
+ch.addEventListener("pointermove",e=>{
+  if(!drag)return;
+  const dd=Math.round((e.clientX-drag.x0)/DW);
+  if(drag.resize){drag.val=Math.max(1,drag.d0+dd);drag.bar.style.width=drag.val*DW-4+"px"}
+  else{drag.val=Math.max(1,drag.s0+dd);drag.bar.style.left=(drag.val-1)*DW+2+"px"}
+});
+function endDrag(){
+  if(!drag)return;
+  const {t,resize,val}=drag;drag=null;
+  if(val!=null){if(resize)t.dur=val;else t.start=val}
+  render();
+}
+ch.addEventListener("pointerup",endDrag);
+ch.addEventListener("pointercancel",endDrag);
+
+// ---- Exportar a imagen ----
+function makePNG(){
+  const LW=210,HD=34,R=40,D=30,PAD=16,TOP=44;
+  const ends=tasks.map(t=>eff(t)+t.dur-1),tot=Math.max(...ends),N=Math.max(14,tot+2);
+  const w=LW+N*D+PAD*2,h=TOP+HD+tasks.length*R+PAD,k=2;
+  const c=document.createElement("canvas");c.width=w*k;c.height=h*k;
+  const g=c.getContext("2d");g.scale(k,k);
+  g.fillStyle="#fff";g.fillRect(0,0,w,h);
+  const F='"Inter","Segoe UI",system-ui,sans-serif';
+  g.fillStyle="#1c2230";g.font="600 18px "+F;g.textBaseline="middle";g.fillText("Mi diagrama de Gantt",PAD,22);
+  g.fillStyle="#7a8396";g.font="13px "+F;g.textAlign="right";g.fillText("Duración total: "+tot+(tot==1?" día":" días"),w-PAD,22);g.textAlign="left";
+  const x0=PAD+LW,y0=TOP;
+  g.strokeStyle="#e6e9ef";g.lineWidth=1;
+  for(let d=0;d<=N;d++){g.beginPath();g.moveTo(x0+d*D+.5,y0);g.lineTo(x0+d*D+.5,y0+HD+tasks.length*R);g.stroke()}
+  for(let i=0;i<=tasks.length;i++){const y=y0+HD+i*R+.5;g.beginPath();g.moveTo(PAD,y);g.lineTo(x0+N*D,y);g.stroke()}
+  g.fillStyle="#7a8396";g.font="11px "+F;g.textAlign="center";
+  for(let d=1;d<=N;d++)g.fillText(d,x0+(d-.5)*D,y0+HD/2);
+  g.textAlign="left";
+  const pos={};
+  tasks.forEach((t,i)=>{
+    const s=eff(t),y=y0+HD+i*R;
+    pos[t.id]={x1:x0+(s-1)*D,x2:x0+(s-1+t.dur)*D,y:y+R/2};
+    g.fillStyle="#1c2230";g.font="13px "+F;
+    let n=t.name;while(n.length>3&&g.measureText(n).width>LW-12)n=n.slice(0,-2);
+    g.fillText(n===t.name?n:n+"…",PAD,y+R/2);
+  });
+  tasks.forEach((t,i)=>{
+    const p=pos[t.id],bw=p.x2-p.x1-4;
+    const col=COLORS[i%COLORS.length],pw=bw*(t.pct||0)/100;
+    g.save();g.beginPath();g.roundRect(p.x1+2,p.y-13,bw,26,7);g.clip();
+    g.fillStyle=col+"38";g.fillRect(p.x1+2,p.y-13,bw,26);
+    g.fillStyle=col;g.fillRect(p.x1+2,p.y-13,pw,26);
+    g.font="600 12px "+F;
+    g.save();g.beginPath();g.rect(p.x1+2,p.y-13,bw,26);g.clip();
+    g.fillStyle="#1c2230";g.fillText(t.name,p.x1+10,p.y);g.restore();
+    g.save();g.beginPath();g.rect(p.x1+2,p.y-13,pw,26);g.clip();
+    g.fillStyle="#fff";g.fillText(t.name,p.x1+10,p.y);g.restore();
+    g.restore();
+    g.fillStyle="#7a8396";g.font="11px "+F;g.textAlign="right";g.fillText((t.pct||0)+"%",x0-6,p.y);g.textAlign="left";
+  });
+  g.strokeStyle="#7a8396";g.fillStyle="#7a8396";g.lineWidth=1.5;
+  tasks.forEach(t=>{
+    if(!t.dep||!pos[t.dep])return;
+    const a=pos[t.dep],b=pos[t.id],mx=a.x2+8;
+    g.beginPath();g.moveTo(a.x2-2,a.y);g.lineTo(mx,a.y);g.lineTo(mx,b.y);g.lineTo(b.x1+1,b.y);g.stroke();
+    g.beginPath();g.moveTo(b.x1+1,b.y);g.lineTo(b.x1-4,b.y-4);g.lineTo(b.x1-4,b.y+4);g.closePath();g.fill();
+  });
+  return new Promise(r=>c.toBlob(r,"image/png"));
+}
+$("exp").addEventListener("click",async()=>{
+  if(!tasks.length)return;
+  try{
+    const blob=await makePNG(),url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="mi-diagrama-gantt.png";document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(err){alert("No se ha podido guardar la imagen.")}
+});
+// ---- Cambiar entre tabla y diagrama (móvil) ----
+const vw=$("view");
+function setView(v){vw.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v===v))}
+vw.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  const l=ch.querySelector(".left");
+  ch.scrollTo({left:b.dataset.v==="d"?l.offsetWidth:0,behavior:"smooth"});
+  setView(b.dataset.v);
+});
+ch.addEventListener("scroll",()=>{
+  const l=ch.querySelector(".left");if(!l)return;
+  setView(ch.scrollLeft>l.offsetWidth/2?"d":"t");
+},{passive:true});
+render();
+</script>
+</body>
+</html>
